@@ -22,9 +22,8 @@ const EnquirySchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-EnquirySchema.pre('save', function(next) {
+EnquirySchema.pre('save', function() {
     this.updatedAt = Date.now();
-    next();
 });
 
 module.exports = mongoose.model('Enquiry', EnquirySchema);
