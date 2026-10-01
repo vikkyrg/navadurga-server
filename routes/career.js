@@ -5,21 +5,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // save to uploads folder
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname); // unique filename
-  }
-});
+// Configure multer storage (memory for MongoDB)
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage: storage });
 
@@ -43,12 +30,17 @@ router.post('/', upload.single('resumeFile'), async (req, res) => {
         phone: req.body.phone,
         experience: req.body.experience,
         position: req.body.position,
-        resumeUrl: req.file ? `/uploads/${req.file.filename}` : '',
+        resumeData: req.file ? req.file.buffer : undefined,
+        resumeContentType: req.file ? req.file.mimetype : undefined,
         coverLetter: req.body.coverLetter
     });
 
     try {
         const newCareer = await career.save();
+        if (req.file) {
+            newCareer.resumeUrl = `/api/career/resume/${newCareer._id}`;
+            await newCareer.save();
+        }
         res.status(201).json(newCareer);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -63,6 +55,20 @@ router.delete('/:id', async (req, res) => {
         
         await career.deleteOne();
         res.json({ message: 'Application deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Serve the resume file
+router.get('/resume/:id', async (req, res) => {
+    try {
+        const career = await Career.findById(req.params.id);
+        if (!career || !career.resumeData) {
+            return res.status(404).json({ message: 'Resume not found' });
+        }
+        res.set('Content-Type', career.resumeContentType);
+        res.send(career.resumeData);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

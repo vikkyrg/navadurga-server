@@ -9,6 +9,8 @@ const CareerSchema = new mongoose.Schema({
     experience: { type: String },
     position: { type: String },
     resumeUrl: { type: String }, 
+    resumeData: { type: Buffer },
+    resumeContentType: { type: String },
     coverLetter: { type: String },
     createdAt: { type: Date, default: Date.now }
 });
